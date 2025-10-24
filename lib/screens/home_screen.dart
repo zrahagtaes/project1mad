@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'calorie_log_screen.dart';
 import 'workout_log_screen.dart';
 import 'progress_screen.dart';
+import 'preset_routines_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -36,6 +37,14 @@ class HomeScreen extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ProgressScreen()),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _NavButton(
+              text: 'Preset Routines',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PresetRoutinesScreen()),
               ),
             ),
           ],
