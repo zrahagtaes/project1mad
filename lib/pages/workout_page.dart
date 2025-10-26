@@ -56,59 +56,102 @@ class _WorkoutPageState extends State<WorkoutPage> {
     _difficulty = level;
     List<String> workout = [];
     if (_selectedWorkout == 'Weightlifting') {
-      workout = (level == 'Easy')
-          ? ['Push-Ups', 'Squats']
-          : (level == 'Intermediate')
-              ? ['Bench Press', 'Deadlifts']
-              : ['Squats', 'Overhead Press', 'Deadlifts'];
+      if (level == 'Easy') {
+        workout = ['Push-Ups', 'Squats', 'Curls'];
+      } else if (level == 'Intermediate') {
+        workout = ['Bench Press', 'Deadlifts', 'Shoulder Press'];
+      } else {
+        workout = ['Squats', 'Deadlifts', 'Overhead Press', 'Pull-Ups'];
+      }
     } else if (_selectedWorkout == 'Running') {
-      workout = (level == 'Easy')
-          ? ['1 mile jog']
-          : (level == 'Intermediate')
-              ? ['3 mile run']
-              : ['5 mile tempo run'];
-    } else {
-      workout = (level == 'Easy')
-          ? ['200m freestyle']
-          : (level == 'Intermediate')
-              ? ['400m medley']
-              : ['800m freestyle'];
+      if (level == 'Easy') {
+        workout = ['1 mile jog'];
+      } else if (level == 'Intermediate') {
+        workout = ['3 mile run'];
+      } else {
+        workout = ['5 mile tempo run', 'Hill sprints'];
+      }
+    } else if (_selectedWorkout == 'Swimming') {
+      if (level == 'Easy') {
+        workout = ['200m freestyle'];
+      } else if (level == 'Intermediate') {
+        workout = ['400m medley'];
+      } else {
+        workout = ['800m freestyle', '400m pull buoy'];
+      }
     }
-
-    setState(() {
-      _presetWorkouts = workout;
-    });
+    setState(() => _presetWorkouts = workout);
   }
 
   Future<void> _saveWorkout() async {
-    final db = DatabaseHelper.instance;
-
+    String combinedNames = '';
     if (_selectedType == 'Custom') {
-      for (var ex in _completedExercises) {
-        await db.insert('workouts', {
-          'workoutType': _selectedWorkout,
-          'name': ex['name'],
-          'weight': ex['weight'],
-          'sets': ex['sets'],
-          'reps': ex['reps'],
-          'difficulty': '',
-          'createdAt': DateTime.now().toIso8601String(),
-        });
-      }
-    } else if (_selectedType == 'Preset') {
-      await db.insert('workouts', {
-        'workoutType': _selectedWorkout,
-        'name': 'Preset $_difficulty',
-        'weight': '',
-        'sets': '',
-        'reps': '',
-        'difficulty': _difficulty,
-        'createdAt': DateTime.now().toIso8601String(),
-      });
+      combinedNames = _completedExercises.map((ex) => ex['name'] ?? '').join(' ');
+    } else {
+      combinedNames = _difficulty;
     }
+    await DatabaseHelper.instance.insert('workouts', {
+      'workoutType': _selectedWorkout,
+      'name': combinedNames,
+      'weight': '',
+      'sets': '',
+      'reps': '',
+      'difficulty': _selectedType == 'Preset' ? _difficulty : '',
+    });
+    setState(() {
+      _completedExercises.clear();
+      _presetWorkouts.clear();
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Workout saved')));
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Workout saved!')),
+  Widget _buildWeightliftingForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var ex in _completedExercises)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Text(
+              '${ex['name']}, Weight: ${ex['weight']} | Sets: ${ex['sets']}, Reps: ${ex['reps']}',
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+          ),
+        const SizedBox(height: 10),
+        TextField(controller: _exerciseNameController, decoration: const InputDecoration(labelText: 'Exercise Name')),
+        const SizedBox(height: 10),
+        TextField(controller: _weightController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Weight')),
+        const SizedBox(height: 10),
+        TextField(controller: _setsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Sets')),
+        const SizedBox(height: 10),
+        TextField(controller: _repsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Reps')),
+        const SizedBox(height: 15),
+        Center(
+          child: IconButton(
+            onPressed: _addExercise,
+            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF001F3F)),
+            iconSize: 36,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRunningSwimmingForm() {
+    return Column(
+      children: [
+        TextField(controller: _distanceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Distance')),
+        const SizedBox(height: 15),
+        TextField(controller: _paceController, keyboardType: TextInputType.text, decoration: const InputDecoration(labelText: 'Pace')),
+      ],
     );
   }
 
@@ -118,80 +161,68 @@ class _WorkoutPageState extends State<WorkoutPage> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DropdownButtonFormField<String>(
             value: _selectedType,
             decoration: const InputDecoration(labelText: 'Type'),
-            items: _typeOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: (value) => setState(() => _selectedType = value!),
+            items: _typeOptions.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+            onChanged: (v) => setState(() {
+              _selectedType = v!;
+              _presetWorkouts.clear();
+              _completedExercises.clear();
+            }),
           ),
           const SizedBox(height: 15),
           DropdownButtonFormField<String>(
             value: _selectedWorkout,
             decoration: const InputDecoration(labelText: 'Workout Category'),
-            items: _workoutTypes.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: (value) => setState(() => _selectedWorkout = value!),
+            items: _workoutTypes.map((w) => DropdownMenuItem(value: w, child: Text(w))).toList(),
+            onChanged: (v) => setState(() {
+              _selectedWorkout = v!;
+              _presetWorkouts.clear();
+              _completedExercises.clear();
+            }),
           ),
           const SizedBox(height: 20),
-          if (_selectedType == 'Custom')
-            Column(
+          if (_selectedType == 'Custom') ...[
+            if (_selectedWorkout == 'Weightlifting') _buildWeightliftingForm(),
+            if (_selectedWorkout == 'Running' || _selectedWorkout == 'Swimming') _buildRunningSwimmingForm(),
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                for (var ex in _completedExercises)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Text(
-                      '${ex['name']}, Weight: ${ex['weight']} | Sets: ${ex['sets']}, Reps: ${ex['reps']}',
-                      style: const TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                  ),
-                TextField(controller: _exerciseNameController, decoration: const InputDecoration(labelText: 'Exercise Name')),
-                const SizedBox(height: 10),
-                TextField(controller: _weightController, decoration: const InputDecoration(labelText: 'Weight')),
-                const SizedBox(height: 10),
-                TextField(controller: _setsController, decoration: const InputDecoration(labelText: 'Sets')),
-                const SizedBox(height: 10),
-                TextField(controller: _repsController, decoration: const InputDecoration(labelText: 'Reps')),
-                const SizedBox(height: 15),
-                IconButton(onPressed: _addExercise, icon: const Icon(Icons.add_circle_outline, color: navy), iconSize: 36),
-              ],
-            )
-          else
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(onPressed: () => _generatePresetWorkout('Easy'), style: ElevatedButton.styleFrom(backgroundColor: navy), child: const Text('Easy')),
-                    ElevatedButton(onPressed: () => _generatePresetWorkout('Intermediate'), style: ElevatedButton.styleFrom(backgroundColor: navy), child: const Text('Intermediate')),
-                    ElevatedButton(onPressed: () => _generatePresetWorkout('Hard'), style: ElevatedButton.styleFrom(backgroundColor: navy), child: const Text('Hard')),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                for (var ex in _presetWorkouts)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Text(ex, style: const TextStyle(fontSize: 16)),
-                  ),
+                ElevatedButton(onPressed: () => _generatePresetWorkout('Easy'), style: ElevatedButton.styleFrom(backgroundColor: navy), child: const Text('Easy')),
+                ElevatedButton(onPressed: () => _generatePresetWorkout('Intermediate'), style: ElevatedButton.styleFrom(backgroundColor: navy), child: const Text('Intermediate')),
+                ElevatedButton(onPressed: () => _generatePresetWorkout('Hard'), style: ElevatedButton.styleFrom(backgroundColor: navy), child: const Text('Hard')),
               ],
             ),
+            const SizedBox(height: 25),
+            for (var ex in _presetWorkouts)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Text(ex, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+              ),
+          ],
           const SizedBox(height: 30),
-          ElevatedButton(
-            onPressed: _saveWorkout,
-            style: ElevatedButton.styleFrom(backgroundColor: navy, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14)),
-            child: const Text('Save Workout', style: TextStyle(fontSize: 18)),
+          Center(
+            child: ElevatedButton(
+              onPressed: _saveWorkout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navy,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Save Workout', style: TextStyle(fontSize: 18)),
+            ),
           ),
         ],
       ),

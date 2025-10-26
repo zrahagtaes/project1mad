@@ -35,18 +35,16 @@ class _CaloriesPageState extends State<CaloriesPage> {
       'carbs': int.tryParse(_carbsController.text) ?? 0,
       'protein': int.tryParse(_proteinController.text) ?? 0,
       'mealType': _selectedMeal,
-      'createdAt': DateTime.now().toIso8601String(),
     });
-
     _nameController.clear();
     _caloriesController.clear();
     _fatsController.clear();
     _carbsController.clear();
     _proteinController.clear();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Calories entry saved!')),
-    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Entry saved')));
   }
 
   @override
@@ -57,21 +55,42 @@ class _CaloriesPageState extends State<CaloriesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Name')),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: 'Name'),
+          ),
           const SizedBox(height: 15),
-          TextField(controller: _caloriesController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Calories')),
+          TextField(
+            controller: _caloriesController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Calories'),
+          ),
           const SizedBox(height: 15),
-          TextField(controller: _fatsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Fats')),
+          TextField(
+            controller: _fatsController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Fats'),
+          ),
           const SizedBox(height: 15),
-          TextField(controller: _carbsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Carbs')),
+          TextField(
+            controller: _carbsController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Carbs'),
+          ),
           const SizedBox(height: 15),
-          TextField(controller: _proteinController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Protein')),
+          TextField(
+            controller: _proteinController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Protein'),
+          ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
             value: _selectedMeal,
             decoration: const InputDecoration(labelText: 'Meal Type'),
-            items: _mealTypes.map((meal) => DropdownMenuItem(value: meal, child: Text(meal))).toList(),
-            onChanged: (value) => setState(() => _selectedMeal = value!),
+            items: _mealTypes
+                .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedMeal = v!),
           ),
           const SizedBox(height: 30),
           Center(
@@ -79,8 +98,14 @@ class _CaloriesPageState extends State<CaloriesPage> {
               onPressed: _saveToDatabase,
               style: ElevatedButton.styleFrom(
                 backgroundColor: navy,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Save Entry', style: TextStyle(fontSize: 18)),
             ),

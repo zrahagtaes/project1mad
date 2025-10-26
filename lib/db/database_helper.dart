@@ -1,68 +1,76 @@
+import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  static final DatabaseHelper instance = DatabaseHelper._internal();
   static Database? _database;
+  static final _initLock = Completer<void>();
 
-  DatabaseHelper._init();
+  DatabaseHelper._internal();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('tracker.db');
+    if (!_initLock.isCompleted) {
+      _initLock.complete(_initDB());
+    }
+    await _initLock.future;
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
+  Future<void> _initDB() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-    return await openDatabase(
+    final path = join(dbPath, 'tracker.db');
+    _database = await openDatabase(
       path,
       version: 1,
-      onCreate: _createDB,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS calories(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            calories INTEGER,
+            fats INTEGER,
+            carbs INTEGER,
+            protein INTEGER,
+            mealType TEXT,
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS workouts(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            workoutType TEXT,
+            name TEXT,
+            weight TEXT,
+            sets TEXT,
+            reps TEXT,
+            difficulty TEXT,
+          )
+        ''');
+      },
     );
   }
 
-  Future _createDB(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE calories(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        calories INTEGER,
-        fats INTEGER,
-        carbs INTEGER,
-        protein INTEGER,
-        mealType TEXT,
-        createdAt TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE workouts(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        workoutType TEXT,
-        name TEXT,
-        weight TEXT,
-        sets TEXT,
-        reps TEXT,
-        difficulty TEXT,
-        createdAt TEXT
-      )
-    ''');
-  }
-
   Future<int> insert(String table, Map<String, dynamic> data) async {
-    final db = await instance.database;
-    return await db.insert(table, data);
+    final db = await database;
+    return db.insert(table, data);
   }
 
   Future<List<Map<String, dynamic>>> fetchAll(String table) async {
-    final db = await instance.database;
-    return await db.query(table, orderBy: 'id DESC');
+    final db = await database;
+    return db.query(table, orderBy: 'id DESC');
   }
 
-  Future close() async {
-    final db = await instance.database;
-    db.close();
+  Future<int> deleteById(String table, int id) async {
+    final db = await database;
+    return db.delete(table, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> close() async {
+    final db = _database;
+    if (db != null && db.isOpen) {
+      await db.close();
+      _database = null;
+    }
   }
 }
