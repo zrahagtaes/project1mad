@@ -75,10 +75,19 @@ class _HomePageState extends State<HomePage> {
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.local_dining), label: 'Calories'),
-          BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Workout'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.local_dining),
+            label: 'Calories',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fitness_center),
+            label: 'Workout',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Log'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Progress'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Progress',
+          ),
         ],
       ),
     );

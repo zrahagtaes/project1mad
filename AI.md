@@ -8,6 +8,8 @@ helper file. Even after the implementation of the database at first wasnt workin
 to show me how to use the try and catch and exception as e statments to debug and catch were the issue. 
 (my information / logs were not saving)
 
+My emulator was being slow and said "too much work on main thread", used ChatGPT to explain the problem. Used different settings in order to have it properly run.
+
 
 
 
